@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { Issue, IssueContextType, StatusType, Comment } from '@/types';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { mockIssues } from '@/utils/mockData';
 
 // Create the context
