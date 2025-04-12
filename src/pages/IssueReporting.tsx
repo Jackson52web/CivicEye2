@@ -62,9 +62,10 @@ const IssueReporting = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    // In a real app, this would upload to a server and return URLs
-    // For this example, we'll use the placeholder
-    setMedia([...media, '/placeholder.svg']);
+    // Create a URL for the uploaded image
+    const file = files[0];
+    const imageUrl = URL.createObjectURL(file);
+    setMedia([...media, imageUrl]);
     
     // Reset the input
     e.target.value = '';

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,10 +19,21 @@ const IssueCard = ({ issue, showControls = true }: IssueCardProps) => {
   const { upvoteIssue } = useIssues();
   const [hasUpvoted, setHasUpvoted] = useState(false);
   
+  // Check if this issue has been upvoted before
+  useEffect(() => {
+    const upvotedIssues = JSON.parse(localStorage.getItem('upvotedIssues') || '{}');
+    setHasUpvoted(!!upvotedIssues[issue.id]);
+  }, [issue.id]);
+  
   const handleUpvote = () => {
     if (!hasUpvoted) {
       upvoteIssue(issue.id);
       setHasUpvoted(true);
+      
+      // Store upvote status in local storage
+      const upvotedIssues = JSON.parse(localStorage.getItem('upvotedIssues') || '{}');
+      upvotedIssues[issue.id] = true;
+      localStorage.setItem('upvotedIssues', JSON.stringify(upvotedIssues));
     }
   };
   
@@ -81,7 +92,7 @@ const IssueCard = ({ issue, showControls = true }: IssueCardProps) => {
               disabled={hasUpvoted}
             >
               <ThumbsUp className="h-4 w-4" />
-              <span>{issue.upvotes + (hasUpvoted ? 1 : 0)}</span>
+              <span>{issue.upvotes}</span>
             </Button>
           )}
           

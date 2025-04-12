@@ -15,7 +15,7 @@ import IssueStatusBadge from '@/components/issues/IssueStatusBadge';
 import { useIssues } from '@/contexts/IssueContext';
 import { issueTypeLabels } from '@/utils/mockData';
 import { formatDate } from '@/utils/formatters';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const IssueDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +24,14 @@ const IssueDetail = () => {
   const [hasUpvoted, setHasUpvoted] = useState(false);
   
   const issue = getIssueById(id || '');
+  
+  // Get upvote status from local storage
+  useEffect(() => {
+    if (id) {
+      const upvotedIssues = JSON.parse(localStorage.getItem('upvotedIssues') || '{}');
+      setHasUpvoted(!!upvotedIssues[id]);
+    }
+  }, [id]);
   
   if (!issue) {
     return (
@@ -40,9 +48,14 @@ const IssueDetail = () => {
   }
   
   const handleUpvote = () => {
-    if (!hasUpvoted) {
+    if (!hasUpvoted && id) {
       upvoteIssue(issue.id);
       setHasUpvoted(true);
+      
+      // Store upvote status in local storage
+      const upvotedIssues = JSON.parse(localStorage.getItem('upvotedIssues') || '{}');
+      upvotedIssues[id] = true;
+      localStorage.setItem('upvotedIssues', JSON.stringify(upvotedIssues));
     }
   };
   
@@ -121,7 +134,7 @@ const IssueDetail = () => {
                     className={hasUpvoted ? "bg-civic-blue hover:bg-civic-blue/90" : ""}
                   >
                     <ThumbsUp className="h-4 w-4 mr-2" />
-                    <span>{issue.upvotes + (hasUpvoted ? 1 : 0)} Upvotes</span>
+                    <span>{issue.upvotes} Upvotes</span>
                   </Button>
                 </div>
               </div>
