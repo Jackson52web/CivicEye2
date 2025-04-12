@@ -12,10 +12,12 @@ import { useIssues } from '@/contexts/IssueContext';
 import { IssueType } from '@/types';
 import { issueTypeLabels } from '@/utils/mockData';
 import { getCurrentLocation, getAddressFromCoordinates } from '@/utils/geolocation';
+import { useToast } from '@/hooks/use-toast';
 
 const IssueReporting = () => {
   const navigate = useNavigate();
   const { addIssue } = useIssues();
+  const { toast } = useToast();
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -31,6 +33,13 @@ const IssueReporting = () => {
     latitude: 0,
     longitude: 0
   });
+  
+  const [errors, setErrors] = useState<{
+    title?: string;
+    description?: string;
+    type?: string;
+    location?: string;
+  }>({});
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -48,6 +57,9 @@ const IssueReporting = () => {
         address,
         isLoading: false
       });
+      
+      // Clear location error if it exists
+      setErrors(prev => ({ ...prev, location: undefined }));
     } catch (error) {
       console.error('Error getting location:', error);
       setLocation(prev => ({
@@ -75,10 +87,44 @@ const IssueReporting = () => {
     setMedia(prev => prev.filter((_, i) => i !== index));
   };
   
+  const validateForm = () => {
+    const newErrors: {
+      title?: string;
+      description?: string;
+      type?: string;
+      location?: string;
+    } = {};
+    
+    if (!title.trim()) {
+      newErrors.title = 'Title is required';
+    }
+    
+    if (!description.trim()) {
+      newErrors.description = 'Description is required';
+    }
+    
+    if (!type) {
+      newErrors.type = 'Issue type is required';
+    }
+    
+    if (location.latitude === 0 || location.longitude === 0) {
+      newErrors.location = 'Location is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    if (!title || !description || !type || location.latitude === 0) {
+    // Validate form
+    if (!validateForm()) {
+      toast({
+        title: "Form Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -99,9 +145,19 @@ const IssueReporting = () => {
         reportedBy: 'Current User'
       });
       
+      toast({
+        title: "Issue Reported",
+        description: "Your report has been submitted successfully.",
+      });
+      
       navigate('/issues');
     } catch (error) {
       console.error('Error submitting issue:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit your report. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -126,14 +182,17 @@ const IssueReporting = () => {
                 placeholder="E.g., Pothole on Main Street"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                required
+                className={errors.title ? "border-red-500" : ""}
               />
+              {errors.title && (
+                <p className="text-sm text-red-500">{errors.title}</p>
+              )}
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="type">Issue Type</Label>
-              <Select value={type} onValueChange={(value) => setType(value as IssueType)} required>
-                <SelectTrigger>
+              <Select value={type} onValueChange={(value) => setType(value as IssueType)}>
+                <SelectTrigger className={errors.type ? "border-red-500" : ""}>
                   <SelectValue placeholder="Select an issue type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -142,6 +201,9 @@ const IssueReporting = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {errors.type && (
+                <p className="text-sm text-red-500">{errors.type}</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -152,8 +214,11 @@ const IssueReporting = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
-                required
+                className={errors.description ? "border-red-500" : ""}
               />
+              {errors.description && (
+                <p className="text-sm text-red-500">{errors.description}</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -164,7 +229,7 @@ const IssueReporting = () => {
                   variant="outline" 
                   onClick={detectLocation}
                   disabled={location.isLoading}
-                  className="flex items-center space-x-2 w-full sm:w-auto"
+                  className={`flex items-center space-x-2 w-full sm:w-auto ${errors.location ? "border-red-500" : ""}`}
                 >
                   {location.isLoading ? (
                     <>
@@ -181,6 +246,10 @@ const IssueReporting = () => {
                 
                 {location.error && (
                   <p className="text-sm text-red-500">{location.error}</p>
+                )}
+                
+                {errors.location && (
+                  <p className="text-sm text-red-500">{errors.location}</p>
                 )}
                 
                 {location.latitude !== 0 && (
@@ -244,7 +313,6 @@ const IssueReporting = () => {
               </Button>
               <Button 
                 type="submit" 
-                disabled={isSubmitting || location.latitude === 0}
                 className="bg-civic-blue hover:bg-civic-blue/90"
               >
                 {isSubmitting ? (
